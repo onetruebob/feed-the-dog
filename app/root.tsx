@@ -10,7 +10,8 @@ import {
 
 export const meta: MetaFunction = () => ({
   charset: "utf-8",
-  title: "New Remix App",
+  title: "Feed The Dog",
+  description: "Keep track of how often the dog is fed",
   viewport: "width=device-width,initial-scale=1",
 });
 
