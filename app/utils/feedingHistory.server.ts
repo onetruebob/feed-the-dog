@@ -1,8 +1,9 @@
 import { User } from "@prisma/client";
-import { formatDistanceToNowStrict, isToday, startOfToday } from "date-fns";
+import { format, isToday, startOfToday } from "date-fns";
 import { db } from "./db.server";
+import { updateTidbyt } from "./tidbyt.server";
 
-interface LastFedInfo {
+export interface LastFedInfo {
   fedTodayCount: number;
   lastFed: string;
 }
@@ -30,11 +31,25 @@ function dateToString(srcDate: Date | undefined): string {
     return "Never";
   }
   if (isToday(srcDate)) {
-    return formatDistanceToNowStrict(srcDate);
+    return format(srcDate, "h:mm b");
   }
   return "Not today";
 }
 
 export async function feedNow(userId: User["id"]): Promise<void> {
   await db.feedHistory.create({ data: { userId } });
+  const LastFedInfo = await getLastFedInfo(userId);
+  updateTidbyt(LastFedInfo);
+}
+
+export async function maybeResetHistories(): Promise<void> {
+  const users = await await db.user.findMany({ select: { id: true } });
+  const userIds = users.map(({ id }) => id);
+
+  for (const userId of userIds) {
+    const lastFedInfo = await getLastFedInfo(userId);
+    if (lastFedInfo.fedTodayCount === 0) {
+      await updateTidbyt(lastFedInfo);
+    }
+  }
 }

@@ -3,6 +3,10 @@ const express = require("express");
 const compression = require("compression");
 const morgan = require("morgan");
 const { createRequestHandler } = require("@remix-run/express");
+const { request } = require("http");
+const cron = require("node-cron");
+
+require("dotenv").config();
 
 const BUILD_DIR = path.join(process.cwd(), "build");
 
@@ -58,4 +62,51 @@ function purgeRequireCache() {
       delete require.cache[key];
     }
   }
+}
+
+cron.schedule("0 0-23 * * *", executeCron); // Execute once every hour
+
+function executeCron() {
+  const cron_token = process.env.CRON_TOKEN;
+  if (!cron_token) {
+    console.log("No cron token. Skipping cron run");
+    return;
+  }
+
+  const data = {
+    cron_token,
+  };
+  postToSelf({ path: "/api/cron", data });
+}
+
+function postToSelf({
+  hostname = "127.0.0.1",
+  port = process.env.PORT || 3000,
+  path,
+  data,
+}) {
+  const jsonData = data && JSON.stringify(data);
+  const options = {
+    hostname,
+    port,
+    path,
+    method: "POST",
+    headers: jsonData && {
+      "Content-Type": "application/json",
+      "Content-Length": jsonData.length,
+    },
+  };
+
+  const req = request(options, (res) => {
+    console.log(
+      `Calling self at path '${path}' with status: ${res.statusCode}`
+    );
+  });
+
+  req.on("error", (error) => {
+    console.error(`Error calling '${path}'`, error);
+  });
+
+  jsonData && req.write(jsonData);
+  req.end();
 }

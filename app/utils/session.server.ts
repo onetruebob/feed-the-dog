@@ -7,7 +7,7 @@ if (!sessionSecret) {
   throw new Error("SESSION_SECRET must be set");
 }
 
-interface LoginForm {
+export interface LoginForm {
   username: string;
   password: string;
 }
