@@ -16,7 +16,7 @@ async function pushTidbytImage(imagePath: string) {
   const tidbytDevice = await tidbyt.devices.get(tidbytDeviceId);
   const imageBuffer = await fs.readFile(imagePath);
   await tidbytDevice.push(imageBuffer, {
-    installationId: "FeedTheDog",
+    installationID: "FeedTheDogApp01",
     background: false,
   });
 }

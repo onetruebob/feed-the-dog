@@ -1,6 +1,10 @@
 import { ActionFunction, json, LoaderFunction } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
-import { feedNow, getLastFedInfo } from "~/utils/feedingHistory.server";
+import {
+  feedNow,
+  getLastFedInfo,
+  removeLastFed,
+} from "~/utils/feedingHistory.server";
 import { requireUserId } from "~/utils/session.server";
 
 interface LoaderData {
@@ -10,16 +14,21 @@ interface LoaderData {
 
 export const loader: LoaderFunction = async ({ request }) => {
   const userId = await requireUserId(request);
-
   const lastFedInfo = await getLastFedInfo(userId);
-
   return json(lastFedInfo);
 };
 
 export const action: ActionFunction = async ({ request }) => {
   const userId = await requireUserId(request);
-  await feedNow(userId);
-  return null;
+  const formData = await request.formData();
+  const method = formData.get("_method");
+  if (method === "feed") {
+    await feedNow(userId);
+  }
+  if (method === "remove-last") {
+    removeLastFed(userId);
+  }
+  return json({}, 200);
 };
 
 export default function Index() {
@@ -35,6 +44,10 @@ export default function Index() {
       <Form method="post">
         <input type="hidden" name="_method" value="feed" />
         <button type="submit">Feed now</button>
+      </Form>
+      <Form method="post">
+        <input type="hidden" name="_method" value="remove-last" />
+        <button type="submit">Remove last</button>
       </Form>
     </div>
   );
