@@ -1,19 +1,28 @@
 import { exec } from "child_process";
 import { LastFedInfo } from "./feedingHistory.server";
+import fs from "fs/promises";
+const Tidbyt = require("tidbyt");
+const tidbytDeviceId = process.env.TIDBYT_DEVICE_ID;
+const tidbytApiKey = process.env.TIDBYT_API_KEY;
+const tidbyt = new Tidbyt(tidbytApiKey);
 
 export async function updateTidbyt(data: LastFedInfo): Promise<void> {
   const renderCommand = getRenderCommand(JSON.stringify(data));
-  const pushCommand = getPushCommand();
   await execPromise(renderCommand);
-  await execPromise(pushCommand);
+  await pushTidbytImage("app/tidbyt/feed-the-dog.webp");
+}
+
+async function pushTidbytImage(imagePath: string) {
+  const tidbytDevice = await tidbyt.devices.get(tidbytDeviceId);
+  const imageBuffer = await fs.readFile(imagePath);
+  await tidbytDevice.push(imageBuffer, {
+    installationId: "FeedTheDog",
+    background: false,
+  });
 }
 
 function getRenderCommand(data: string): string {
   return `pixlet render app/tidbyt/feed-the-dog.star data='${data}'`;
-}
-
-function getPushCommand(): string {
-  return `pixlet push --api-token ${process.env.TIDBYT_API_KEY} --installation-id FeedTheDog ${process.env.TIDBYT_DEVICE_ID} app/tidbyt/feed-the-dog.webp`;
 }
 
 function execPromise(command: string): Promise<string> {
