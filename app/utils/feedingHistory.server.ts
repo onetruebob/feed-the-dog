@@ -1,5 +1,6 @@
 import { User } from "@prisma/client";
-import { format, isToday, startOfToday } from "date-fns";
+import { format, isToday, startOfDay } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
 import { db } from "./db.server";
 import { updateTidbyt } from "./tidbyt.server";
 
@@ -9,7 +10,7 @@ export interface LastFedInfo {
 }
 
 export async function getLastFedInfo(userId: User["id"]): Promise<LastFedInfo> {
-  const todayStart = startOfToday();
+  const todayStart = startOfDay(utcToZonedTime(new Date(), "America/New_York"));
   const fedTodayCount = await db.feedHistory.count({
     where: { userId, createdAt: { gte: todayStart } },
   });
@@ -18,7 +19,10 @@ export async function getLastFedInfo(userId: User["id"]): Promise<LastFedInfo> {
     where: { userId },
     orderBy: { createdAt: "desc" },
   });
-  const lastFed = dateToString(lastFeedingEntry?.createdAt);
+  const lastFed = dateToString(
+    lastFeedingEntry?.createdAt &&
+      utcToZonedTime(lastFeedingEntry?.createdAt, "America/New_York")
+  );
 
   return {
     fedTodayCount,
@@ -31,7 +35,7 @@ function dateToString(srcDate: Date | undefined): string {
     return "Never";
   }
   if (isToday(srcDate)) {
-    return format(srcDate, "h:mm b");
+    return format(srcDate, "h:mm a");
   }
   return "Not today";
 }
