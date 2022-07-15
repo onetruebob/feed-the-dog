@@ -69,9 +69,26 @@ export async function maybeResetHistories(): Promise<void> {
   }
 }
 
+export async function fedStatus(userId: User["id"]): Promise<string> {
+  const lastFedInfo = await getLastFedInfo(userId);
+  updateTidbyt(lastFedInfo); // Don't wait to respond
+
+  if (lastFedInfo.fedTodayCount === 0) {
+    return "The dog has not been fed today.";
+  }
+
+  return `The dog has been fed ${pluralize(
+    lastFedInfo.fedTodayCount,
+    "time"
+  )} today. The last time was at ${lastFedInfo.lastFed}.`;
+}
+
 function startOfDayZoned(dateGMT: Date, timezone: string): Date {
   return zonedTimeToUtc(
     startOfDay(utcToZonedTime(dateGMT, timezone)),
     timezone
   );
 }
+
+const pluralize = (count: number, noun: string, suffix = "s") =>
+  `${count} ${noun}${count !== 1 ? suffix : ""}`;
